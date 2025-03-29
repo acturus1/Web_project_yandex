@@ -6,6 +6,7 @@ from datetime import datetime
 from convert import convert_md_to_html 
 import re
 from transliterate import translit  # Установите библиотеку: pip install transliterate
+from werkzeug.security import generate_password_hash, check_password_hash
 
 def sanitize_filename(filename):
     # Транслитерируем кириллицу в латиницу
@@ -14,12 +15,15 @@ def sanitize_filename(filename):
     filename = re.sub(r'[^\w\-]', '_', filename)
     return filename
 
+# Создаем директорию для базы данных
+try:
+    os.mkdir('base_d')
+except Exception:
+    pass
+
 # Определяем базовую директорию и путь к базе данных
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, 'base_d', 'database.db')
-
-# Создаем директорию для базы данных
-# os.
 
 # Создаем Flask-приложение
 app = Flask(__name__)
@@ -85,12 +89,13 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if user and user.password == password:
-            login_user(user)  # Авторизуем пользователя
+        # Проверяем хеш пароля
+        if user and check_password_hash(user.password, password):
+            login_user(user)
             return redirect(url_for('index'))
         else:
-            flash('Неверный пароль')  # Сообщение об ошибке
-    return render_template('login.html')
+            flash('Неверный логин или пароль')
+    return render_template('login.html')  
 
 # Страница регистрации
 @app.route('/register', methods=['GET', 'POST'])
@@ -100,12 +105,14 @@ def register():
         password = request.form['password']
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            flash('Пользователь уже существует')  # Сообщение, если пользователь уже существует
+            flash('Пользователь уже существует')
             return redirect(url_for('register'))
-        new_user = User(username=username, password=password)
-        db.session.add(new_user)  # Добавляем нового пользователя в базу данных
+        # Хешируем пароль
+        hashed_password = generate_password_hash(password)
+        new_user = User(username=username, password=hashed_password)
+        db.session.add(new_user)
         db.session.commit()
-        flash('Успешная регистрация')  # Сообщение об успешной регистрации
+        flash('Успешная регистрация')
         return redirect(url_for('login'))
     return render_template('register.html')
 
