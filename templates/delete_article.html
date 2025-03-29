@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Удалить статью</h1>
+    <p>Вы уверенны в том что хотите удалить "{{ article.name }}"?</p>
+    <form method="POST">
+        <button type="submit">Delete</button>
+    </form>
+{% endblock %}

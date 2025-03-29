@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Статьи</h1>
+    {% if not current_user.is_authenticated %}
+        <div class="alert alert-info">
+            Некоторые статьи видны только зарегистрированным пользователям <a href="{{ url_for('login') }}">войти</a> чтобы посмотреть все статьи.</p>
+        </div>
+    {% endif %}
+    <ul>
+        {% for article in articles %}
+            <li>
+                <h2><a href="{{ url_for('view_article', id=article.id) }}">{{ article.name }}</a></h2>
+                <p>Author: {{ article.author }}</p>
+                <p>Tag: <a href="{{ url_for('articles_by_tag', tag=article.tag) }}">{{ article.tag }}</a></p>
+                {% if current_user.is_authenticated and article.author == current_user.username %}
+                    <a href="{{ url_for('edit_article', id=article.id) }}">Редактировать</a>
+                    <form action="{{ url_for('delete_article', id=article.id) }}" method="POST">
+                        <button type="submit">Удалить</button>
+                    </form>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

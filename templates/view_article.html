@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="view-article">
+        <h1>{{ article.name }}</h1>
+        <p>Автор: {{ article.author }}</p>
+        <p>Тег: {{ article.tag }}</p>
+        <div class="content">
+            {{ content|safe }}
+        </div>
+        <a href="{{ url_for('index') }}" class="button button-back">На главную</a>
+    </div>
+{% endblock %}
