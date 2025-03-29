@@ -141,9 +141,7 @@ def logout():
 @app.route('/profile')
 @login_required
 def profile():
-    # Получаем статьи пользователя
-    user_articles = Article.query.filter_by(author=current_user.username).all()
-    return render_template('profile.html', user=current_user, articles=user_articles)
+    return redirect(url_for('user_profile', username=current_user.username))
 
 @app.route('/upload_avatar', methods=['POST'])
 @login_required
@@ -170,6 +168,21 @@ def upload_avatar():
         flash('Недопустимый формат файла')
     
     return redirect(url_for('profile'))
+
+@app.route('/user/<username>')
+def user_profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    articles_query = Article.query.filter_by(author=username)
+    
+    # Фильтрация статей для неавторизованных пользователей
+    if not current_user.is_authenticated:
+        articles_query = articles_query.filter_by(registered=False)
+    
+    articles = articles_query.all()
+    return render_template('profile.html', 
+                         user=user, 
+                         articles=articles,
+                         is_owner=current_user == user)
 
 # Добавление статьи
 @app.route('/add_article', methods=['GET', 'POST'])

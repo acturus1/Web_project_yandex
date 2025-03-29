@@ -204,6 +204,34 @@ form button:hover {
     align-items: center;
 }
 
+.article-author a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.article-author a:hover {
+    text-decoration: underline;
+}
+
+.private-badge {
+    background: #e74c3c;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
+.article-tag {
+    background: #3498db;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    margin-left: auto;
+}
+
 /* Кнопки */
 .button {
     display: inline-block;
