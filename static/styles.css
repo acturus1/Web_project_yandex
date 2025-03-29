@@ -163,6 +163,47 @@ form button:hover {
     margin-top: 20px;
 }
 
+.profile-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.avatar-section {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.avatar-img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 3px solid #ddd;
+}
+
+.user-articles {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.article-list {
+    list-style: none;
+    padding: 0;
+}
+
+.article-item {
+    padding: 10px;
+    margin: 10px 0;
+    background: white;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 /* Кнопки */
 .button {
     display: inline-block;

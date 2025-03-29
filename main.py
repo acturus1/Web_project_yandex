@@ -7,6 +7,8 @@ from convert import convert_md_to_html
 import re
 from transliterate import translit  # Установите библиотеку: pip install transliterate
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+
 
 def sanitize_filename(filename):
     # Транслитерируем кириллицу в латиницу
@@ -30,6 +32,14 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Секретный ключ для сессий
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DATABASE_PATH}'  # Путь к базе данных
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Отключаем отслеживание изменений
+
+# Добавляем настройки для загрузки файлов
+app.config['UPLOAD_FOLDER'] = 'static/avatars'
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB
+
+# Создаем директорию для аватарок
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Инициализируем SQLAlchemy и LoginManager
 db = SQLAlchemy(app)
@@ -58,7 +68,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)  # Уникальный идентификатор пользователя
     username = db.Column(db.String(80), unique=True, nullable=False)  # Имя пользователя
     password = db.Column(db.String(120), nullable=False)  # Пароль пользователя
-
+    avatar = db.Column(db.String(200), default='default_avatar.jpg') # Аватар пользователя
+    
 # Модель статьи
 class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # Уникальный идентификатор статьи
@@ -72,6 +83,10 @@ class Article(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))  # Возвращает пользователя по его ID
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 # Главная страница
 @app.route('/')
@@ -122,6 +137,39 @@ def register():
 def logout():
     logout_user()  # Выход пользователя
     return redirect(url_for('index'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    # Получаем статьи пользователя
+    user_articles = Article.query.filter_by(author=current_user.username).all()
+    return render_template('profile.html', user=current_user, articles=user_articles)
+
+@app.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    if 'avatar' not in request.files:
+        flash('Файл не выбран')
+        return redirect(url_for('profile'))
+    
+    file = request.files['avatar']
+    if file.filename == '':
+        flash('Файл не выбран')
+        return redirect(url_for('profile'))
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"{current_user.id}_{file.filename}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Обновляем аватар в базе данных
+        current_user.avatar = filename
+        db.session.commit()
+        flash('Аватар успешно обновлен')
+    else:
+        flash('Недопустимый формат файла')
+    
+    return redirect(url_for('profile'))
 
 # Добавление статьи
 @app.route('/add_article', methods=['GET', 'POST'])

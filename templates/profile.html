@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile-container">
+    <h2>Профиль пользователя: {{ user.username }}</h2>
+    
+    <div class="avatar-section">
+        <img src="{{ url_for('static', filename='avatars/' + user.avatar) }}" 
+             alt="Аватар" 
+             class="avatar-img"
+             onerror="this.src='{{ url_for('static', filename='avatars/default_avatar.jpg') }}'">
+        
+        <form method="post" action="{{ url_for('upload_avatar') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Обновить аватар:</label>
+                <input type="file" name="avatar" accept="image/*">
+            </div>
+            <button type="submit" class="btn">Загрузить</button>
+        </form>
+    </div>
+
+    <div class="user-articles">
+        <h3>Мои статьи:</h3>
+        {% if articles %}
+            <ul class="article-list">
+                {% for article in articles %}
+                    <li class="article-item">
+                        <a href="{{ url_for('view_article', id=article.id) }}">{{ article.name }}</a>
+                        <span class="article-date">{{ article.tag }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>У вас пока нет статей</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
