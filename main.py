@@ -70,7 +70,8 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(120), nullable=False)  # Пароль пользователя
     avatar = db.Column(db.String(200), default='default_avatar.jpg') # Аватар пользователя
     is_admin = db.Column(db.Boolean, default=False) # Права суперпользователя(админчика)
-    
+    comments = db.relationship('Comment', backref='author', lazy=True)
+
 # Модель статьи
 class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # Уникальный идентификатор статьи
@@ -78,8 +79,18 @@ class Article(db.Model):
     name = db.Column(db.String(120), nullable=False)  # Название статьи
     tag = db.Column(db.String(50), nullable=False)  # Тег статьи
     registered = db.Column(db.Boolean, nullable=False)  # Доступна ли статья только зарегистрированным пользователям
-    path = db.Column(db.String(200), nullable=False)  # Путь к файлу статьи
+    path = db.Column(db.String(200), nullable=False)  # Путm к файлу статьи
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    comments = db.relationship('Comment', backref='article', lazy=True, order_by="Comment.created_at.desc()")
 
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
+
+    
 # Загрузчик пользователя для Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
@@ -338,6 +349,50 @@ def admin_edit_article(id):
                          article=article,
                          content=content,
                          allowed_tags=ALLOWED_TAGS)
+
+@app.route('/add_comment/<int:article_id>', methods=['POST'])
+@login_required
+def add_comment(article_id):
+    article = Article.query.get_or_404(article_id)
+    text = request.form.get('text')
+    
+    if not text:
+        flash('Комментарий не может быть пустым', 'error')
+        return redirect(url_for('view_article', id=article_id))
+    
+    new_comment = Comment(
+        text=text,
+        user_id=current_user.id,
+        article_id=article_id
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+    
+    flash('Комментарий добавлен', 'success')
+    return redirect(url_for('view_article', id=article_id))
+
+@app.route('/delete_comment/<int:comment_id>', methods=['POST'])
+@login_required
+def delete_comment(comment_id):
+    comment = Comment.query.get_or_404(comment_id)
+    
+    if current_user.id != comment.user_id and not current_user.is_admin:
+        flash('Вы не можете удалить этот комментарий', 'error')
+        return redirect(url_for('view_article', id=comment.article_id))
+    
+    db.session.delete(comment)
+    db.session.commit()
+    
+    flash('Комментарий удален', 'success')
+    return redirect(url_for('view_article', id=comment.article_id))
+
+@app.route('/toggle_comment/<int:comment_id>')
+@admin_required
+def toggle_comment(comment_id):
+    comment = Comment.query.get_or_404(comment_id)
+    comment.is_approved = not comment.is_approved
+    db.session.commit()
+    return redirect(url_for('view_article', id=comment.article_id))
 
 @app.cli.command("create-admin")
 @click.argument("username")

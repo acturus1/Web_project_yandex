@@ -1,12 +1,110 @@
 {% extends "base.html" %}
+
 {% block content %}
-    <div class="view-article">
+<div class="view-article">
+    <div class="article-content">
         <h1>{{ article.name }}</h1>
-        <p>Автор: {{ article.author }}</p>
-        <p>Тег: {{ article.tag }}</p>
+        
+        <div class="article-meta">
+            <p>Автор: <a href="{{ url_for('user_profile', username=article.author) }}">{{ article.author }}</a></p>
+            <p>Тег: <span class="article-tag">{{ article.tag }}</span></p>
+            <p>Опубликовано: 
+                {% if article.created_at %}
+                    {{ article.created_at.strftime('%d.%m.%Y в %H:%M') }}
+                {% else %}
+                    Дата не указана
+                {% endif %}
+            </p>
+        </div>
+
         <div class="content">
             {{ content|safe }}
         </div>
-        <a href="{{ url_for('index') }}" class="button button-back">На главную</a>
     </div>
+    <div class="comments-section">
+        <h3>Комментарии ({{ article.comments|length }})</h3>
+        
+        {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('add_comment', article_id=article.id) }}">
+            <textarea name="text" required placeholder="Ваш комментарий..."></textarea>
+            <button type="submit">Отправить</button>
+        </form>
+        {% else %}
+        <p><a href="{{ url_for('login') }}">Войдите</a>, чтобы оставить комментарий</p>
+        {% endif %}
+        
+        <div class="comments-list">
+            {% for comment in article.comments %}
+            <div class="comment">
+                <div class="comment-header">
+                    <strong>{{ comment.author.username }}</strong>
+                    <small>{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                    {% if current_user.id == comment.user_id or current_user.is_admin %}
+                    <form method="POST" action="{{ url_for('delete_comment', comment_id=comment.id) }}" 
+                          onsubmit="return confirm('Удалить комментарий?')">
+                        <button type="submit" class="delete-comment">×</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="comment-text">{{ comment.text }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="article-footer">
+        <a href="{{ url_for('index') }}" class="button button-back">На главную</a>
+        {% if current_user.is_authenticated and current_user.username == article.author %}
+            <a href="{{ url_for('edit_article', id=article.id) }}" class="button button-edit">Редактировать статью</a>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+
+.article-content {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.article-meta {
+    color: #666;
+    margin: 15px 0;
+}
+
+.article-tag {
+    background: #3498db;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.content {
+    line-height: 1.6;
+    font-size: 1.1em;
+}
+
+.comments-section {
+    margin-top: 40px;
+}
+
+.button {
+    display: inline-block;
+    padding: 8px 15px;
+    margin-right: 10px;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.button-back {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.button-edit {
+    background: #3498db;
+    color: white;
+}
+</style>
 {% endblock %}
