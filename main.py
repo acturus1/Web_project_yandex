@@ -369,9 +369,9 @@ def delete_user(username):
     if user:
         db.session.delete(user)
         db.session.commit()
-        click.echo(f"✅ Пользователь {username} удален")
+        click.echo(f"Пользователь {username} удален")
     else:
-        click.echo(f"❌ Пользователь {username} не найден")
+        click.echo(f"Пользователь {username} не найден")
 
 
 # Запуск приложения
