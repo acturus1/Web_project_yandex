@@ -2,3 +2,6 @@ main.txt
 __pycache__/
 base_d/
 articles/
+static/avatars/*
+!static/avatars/default_avatar.jpg
+!logs/important.log

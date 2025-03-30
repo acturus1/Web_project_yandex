@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from convert import convert_md_to_html 
 import re
-from transliterate import translit  # Установите библиотеку: pip install transliterate
+from transliterate import translit
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
