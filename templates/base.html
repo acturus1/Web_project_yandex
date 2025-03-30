@@ -18,7 +18,10 @@
         {% endif %}
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('user_profile', username=current_user.username) }}">Мой профиль</a>
-        {% endif %}  
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.is_admin %}
+            <a href="{{ url_for('admin_articles') }}">Админ-панель</a>
+        {% endif %}
     </nav>
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}

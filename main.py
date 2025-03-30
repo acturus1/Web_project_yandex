@@ -8,7 +8,9 @@ import re
 from transliterate import translit
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-
+import click
+from functools import wraps
+import shutil
 
 def sanitize_filename(filename):
     # Транслитерируем кириллицу в латиницу
@@ -18,10 +20,8 @@ def sanitize_filename(filename):
     return filename
 
 # Создаем директорию для базы данных
-try:
-    os.mkdir('base_d')
-except Exception:
-    pass
+
+os.makedirs('base_d', exist_ok=True)
 
 # Определяем базовую директорию и путь к базе данных
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +69,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)  # Имя пользователя
     password = db.Column(db.String(120), nullable=False)  # Пароль пользователя
     avatar = db.Column(db.String(200), default='default_avatar.jpg') # Аватар пользователя
+    is_admin = db.Column(db.Boolean, default=False) # Права суперпользователя(админчика)
     
 # Модель статьи
 class Article(db.Model):
@@ -281,6 +282,97 @@ def view_article(id):
 def articles_by_tag(tag):
     articles = Article.query.filter_by(tag=tag).all()  # Получаем все статьи с указанным тегом
     return render_template('index.html', articles=articles)
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Доступ запрещен', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/admin/articles')
+@admin_required
+def admin_articles():
+    articles = Article.query.all()
+    users = User.query.all()
+    return render_template('admin/articles.html', 
+                         articles=articles,
+                         users=users)
+
+@app.route('/admin/delete_article/<int:id>', methods=['POST'])
+@admin_required
+def admin_delete_article(id):
+    article = Article.query.get_or_404(id)
+    # Удаление файлов статьи
+    article_dir = os.path.dirname(article.path)
+    if os.path.exists(article_dir):
+        shutil.rmtree(article_dir)
+    db.session.delete(article)
+    db.session.commit()
+    flash('Статья удалена', 'success')
+    return redirect(url_for('admin_articles'))
+
+@app.route('/admin/edit_article/<int:id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_article(id):
+    article = Article.query.get_or_404(id)
+    if request.method == 'POST':
+        # Обновление данных статьи
+        article.name = request.form['name']
+        article.tag = request.form['tag']
+        article.registered = 'registered' in request.form
+        # Сохранение изменений в файл
+        with open(article.path, 'w', encoding='utf-8') as f:
+            f.write(request.form['text'])
+        convert_md_to_html(article.path)
+        db.session.commit()
+        flash('Статья обновлена', 'success')
+        return redirect(url_for('admin_articles'))
+    
+    with open(article.path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return render_template('admin/edit_article.html',
+                         article=article,
+                         content=content,
+                         allowed_tags=ALLOWED_TAGS)
+
+@app.cli.command("create-admin")
+@click.argument("username")
+def create_admin(username):
+    """Назначение прав администратора"""
+    user = User.query.filter_by(username=username).first()
+    
+    if not user:
+        click.echo(f"Пользователь {username} не найден")
+        return
+        
+    user.is_admin = True
+    db.session.commit()
+    click.echo(f"Пользователь {username} теперь администратор")
+
+@app.cli.command("list-users")
+def list_users():
+    """Список всех пользователей"""
+    users = User.query.all()
+    for user in users:
+        status = "Админ" if user.is_admin else "Обычный"
+        click.echo(f"{user.id}: {user.username} ({status})")
+
+@app.cli.command("delete-user")
+@click.argument("username")
+def delete_user(username):
+    """Удаление пользователя"""
+    user = User.query.filter_by(username=username).first()
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        click.echo(f"✅ Пользователь {username} удален")
+    else:
+        click.echo(f"❌ Пользователь {username} не найден")
+
 
 # Запуск приложения
 if __name__ == '__main__':

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Редактирование статьи (Админ)</h2>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label>Название:</label>
+            <input type="text" name="name" value="{{ article.name }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Тег:</label>
+            <select name="tag" class="form-control">
+                {% for tag in allowed_tags %}
+                    <option value="{{ tag }}" {% if tag == article.tag %}selected{% endif %}>{{ tag }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Содержание (Markdown):</label>
+            <textarea name="text" class="form-control" rows="15">{{ content }}</textarea>
+        </div>
+        
+        <div class="form-check">
+            <input type="checkbox" name="registered" id="registered" 
+                   class="form-check-input" {% if article.registered %}checked{% endif %}>
+            <label class="form-check-label" for="registered">Только для зарегистрированных</label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary mt-3">Сохранить</button>
+        <a href="{{ url_for('admin_articles') }}" class="btn btn-secondary mt-3">Отмена</a>
+    </form>
+</div>
+{% endblock %}

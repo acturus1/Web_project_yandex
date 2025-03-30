@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>Панель администратора</h2>
+    
+    <div class="articles-list">
+        <h3>Все статьи:</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Автор</th>
+                    <th>Тег</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr>
+                    <td>{{ article.name }}</td>
+                    <td>{{ article.author }}</td>
+                    <td>{{ article.tag }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_edit_article', id=article.id) }}" class="btn btn-sm btn-warning">Редактировать</a>
+                        <form method="post" action="{{ url_for('admin_delete_article', id=article.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить статью?')">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
