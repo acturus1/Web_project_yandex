@@ -159,26 +159,51 @@ def profile():
 @login_required
 def upload_avatar():
     if 'avatar' not in request.files:
-        flash('Файл не выбран')
+        flash('Файл не выбран', 'error')
         return redirect(url_for('profile'))
-    
+
     file = request.files['avatar']
-    if file.filename == '':
-        flash('Файл не выбран')
-        return redirect(url_for('profile'))
     
-    if file and allowed_file(file.filename):
-        filename = secure_filename(f"{current_user.id}_{file.filename}")
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    # Проверка на пустой файл
+    if file.filename == '':
+        flash('Файл не выбран', 'error')
+        return redirect(url_for('profile'))
+
+    # Проверка типа файла
+    if not allowed_file(file.filename):
+        flash('Разрешены только файлы: png, jpg, jpeg, gif', 'error')
+        return redirect(url_for('profile'))
+
+    # Проверка размера файла
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    file.seek(0)
+    if file_length > app.config['MAX_CONTENT_LENGTH']:
+        flash('Файл слишком большой (максимум 2MB)', 'error')
+        return redirect(url_for('profile'))
+
+    # Генерация безопасного имени файла
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"avatar_{current_user.id}.{ext}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    # Удаление старого аватара (если не дефолтный)
+    if current_user.avatar != 'default_avatar.jpg':
+        old_filepath = os.path.join(app.config['UPLOAD_FOLDER'], current_user.avatar)
+        if os.path.exists(old_filepath):
+            os.remove(old_filepath)
+
+    # Сохранение нового файла
+    try:
         file.save(filepath)
-        
-        # Обновляем аватар в базе данных
         current_user.avatar = filename
         db.session.commit()
-        flash('Аватар успешно обновлен')
-    else:
-        flash('Недопустимый формат файла')
-    
+        flash('Аватар успешно обновлен', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Ошибка при сохранении аватара', 'error')
+        app.logger.error(f"Error saving avatar: {str(e)}")
+
     return redirect(url_for('profile'))
 
 @app.route('/user/<username>')
