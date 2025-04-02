@@ -6,12 +6,21 @@
             Некоторые статьи видны только зарегистрированным пользователям <a href="{{ url_for('login') }}">войти</a> чтобы посмотреть все статьи.</p>
         </div>
     {% endif %}
-    <div class="sorting-options mb-4">
-        <small>Сортировать по:</small>
-        <a href="?sort=newest" class="badge badge-secondary {% if current_sort == 'newest' %}active{% endif %}">Новым</a>
-        <a href="?sort=oldest" class="badge badge-secondary {% if current_sort == 'oldest' %}active{% endif %}">Старым</a>
-        <a href="?sort=views" class="badge badge-secondary {% if current_sort == 'views' %}active{% endif %}">Популярным</a>
-    </div>
+        <div class="sorting-options mb-4">
+            <small>Сортировать по:</small>
+            <a href="?sort=newest" class="badge badge-secondary {% if current_sort == 'newest' %}active{% endif %}">
+                <i class="fas fa-clock"></i> Новым
+            </a>
+            <a href="?sort=oldest" class="badge badge-secondary {% if current_sort == 'oldest' %}active{% endif %}">
+                <i class="fas fa-history"></i> Старым
+            </a>
+            <a href="?sort=views" class="badge badge-secondary {% if current_sort == 'views' %}active{% endif %}">
+                <i class="fas fa-eye"></i> Просмотрам
+            </a>
+            <a href="?sort=likes" class="badge badge-secondary {% if current_sort == 'likes' %}active{% endif %}">
+                <i class="fas fa-heart"></i> Лайкам
+            </a>
+        </div>
     <ul>
         {% for article in articles %}
             <li>
@@ -29,6 +38,12 @@
                     <div class="article-date">
                         {{ article.created_at.strftime('%d.%m.%Y') }}
                     </div>
+                    <span class="likes">
+                        <button class="like-btn" data-article-id="{{ article.id }}">
+                            ❤️
+                        </button>
+                        <span class="likes-count">{{ article.likes_count }}</span>
+                    </span>
                 </div>
                 {% if current_user.is_authenticated and article.author == current_user.username %}
                     <div class="article-actions">
@@ -41,4 +56,25 @@
             </li>
         {% endfor %}
     </ul>
+<script>
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const articleId = this.dataset.articleId;
+                try {
+                    const response = await fetch(`/like_article/${articleId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    this.nextElementSibling.textContent = data.likes;
+                    this.style.color = data.status === 'liked' ? 'red' : 'gray';
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+</script>
 {% endblock %}

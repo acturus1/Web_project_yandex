@@ -13,9 +13,9 @@ from functools import wraps
 import shutil
 
 def sanitize_filename(filename):
-    # Транслитерируем кириллицу в латиницу
+    # Переводим кириллицу в латиницу
     filename = translit(filename, 'ru', reversed=True)
-    # Удаляем все недопустимые символы (оставляем только буквы, цифры, дефисы и подчеркивания)
+    # Удаляем все недопустимые символы оставляем только буквы, цифры, дефисы и подчеркивания
     filename = re.sub(r'[^\w\-]', '_', filename)
     return filename
 
@@ -83,6 +83,7 @@ class Article(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.relationship('Comment', backref='article', lazy=True, order_by="Comment.created_at.desc()")
     views = db.Column(db.Integer, default=0)
+    likes_count = db.Column(db.Integer, default=0)
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -100,6 +101,12 @@ class ArticleView(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'article_id', name='uix_user_article'),
     )
+
+class ArticleLike(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Загрузчик пользователя для Flask-Login
 @login_manager.user_loader
@@ -121,6 +128,8 @@ def index():
         articles = query.order_by(Article.views.desc()).all()
     elif sort_by == 'oldest':
         articles = query.order_by(Article.created_at.asc()).all()
+    elif sort_by == 'likes':
+        articles = query.order_by(Article.likes_count.desc()).all()
     else: 
         articles = query.order_by(Article.created_at.desc()).all()
     if current_user.is_authenticated:
@@ -480,6 +489,31 @@ def toggle_comment(comment_id):
     comment.is_approved = not comment.is_approved
     db.session.commit()
     return redirect(url_for('view_article', id=comment.article_id))
+
+@app.route('/like_article/<int:article_id>', methods=['POST'])
+@login_required
+def like_article(article_id):
+    article = Article.query.get_or_404(article_id)
+    
+    like = ArticleLike.query.filter_by(
+        user_id=current_user.id,
+        article_id=article.id
+    ).first()
+    
+    if like:
+        db.session.delete(like)
+        article.likes_count -= 1
+        db.session.commit()
+        return jsonify({'status': 'unliked', 'likes': article.likes_count})
+    else:
+        new_like = ArticleLike(
+            user_id=current_user.id,
+            article_id=article.id
+        )
+        db.session.add(new_like)
+        article.likes_count += 1
+        db.session.commit()
+        return jsonify({'status': 'liked', 'likes': article.likes_count})
 
 @app.cli.command("create-admin")
 @click.argument("username")

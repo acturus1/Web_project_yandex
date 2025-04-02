@@ -271,6 +271,23 @@ form button:hover {
     background-color: #c82333;
 }
 
+.like-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: gray;
+    padding: 0 5px;
+}
+
+.like-btn:hover {
+    color: red;
+}
+
+.likes-count {
+    margin-left: 5px;
+    font-weight: bold;
+}
 
 @media (max-width: 768px) {
     form input[type="text"],
