@@ -231,7 +231,6 @@ form button:hover {
     margin-left: auto;
 }
 
-
 .button {
     display: inline-block;
     background-color: #007BFF;
@@ -245,7 +244,6 @@ form button:hover {
 .button:hover {
     background-color: #0056b3;
 }
-
 
 .button-back {
     display: block;

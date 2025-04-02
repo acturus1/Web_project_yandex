@@ -6,19 +6,37 @@
             Некоторые статьи видны только зарегистрированным пользователям <a href="{{ url_for('login') }}">войти</a> чтобы посмотреть все статьи.</p>
         </div>
     {% endif %}
+    <div class="sorting-options mb-4">
+        <small>Сортировать по:</small>
+        <a href="?sort=newest" class="badge badge-secondary {% if current_sort == 'newest' %}active{% endif %}">Новым</a>
+        <a href="?sort=oldest" class="badge badge-secondary {% if current_sort == 'oldest' %}active{% endif %}">Старым</a>
+        <a href="?sort=views" class="badge badge-secondary {% if current_sort == 'views' %}active{% endif %}">Популярным</a>
+    </div>
     <ul>
         {% for article in articles %}
             <li>
                 <h2><a href="{{ url_for('view_article', id=article.id) }}">{{ article.name }}</a></h2>
-                <div class="article-author">
-                    Автор: <a href="{{ url_for('user_profile', username=article.author) }}">{{ article.author }}</a>
-                </div>               
-                <p>Tag: <a href="{{ url_for('articles_by_tag', tag=article.tag) }}">{{ article.tag }}</a></p>
+                <div class="article-meta">
+                    <div class="article-author">
+                        Автор: <a href="{{ url_for('user_profile', username=article.author) }}">{{ article.author }}</a>
+                    </div>
+                    <div class="article-views">
+                        <i class="fas fa-eye"></i> {{ article.views }} просмотров
+                    </div>
+                    <div class="article-tag">
+                        Тег: <a href="{{ url_for('articles_by_tag', tag=article.tag) }}">{{ article.tag }}</a>
+                    </div>
+                    <div class="article-date">
+                        {{ article.created_at.strftime('%d.%m.%Y') }}
+                    </div>
+                </div>
                 {% if current_user.is_authenticated and article.author == current_user.username %}
-                    <a href="{{ url_for('edit_article', id=article.id) }}">Редактировать</a>
-                    <form action="{{ url_for('delete_article', id=article.id) }}" method="POST">
-                        <button type="submit">Удалить</button>
-                    </form>
+                    <div class="article-actions">
+                        <a href="{{ url_for('edit_article', id=article.id) }}">Редактировать</a>
+                        <form action="{{ url_for('delete_article', id=article.id) }}" method="POST">
+                            <button type="submit">Удалить</button>
+                        </form>
+                    </div>
                 {% endif %}
             </li>
         {% endfor %}

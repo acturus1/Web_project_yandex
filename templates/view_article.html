@@ -8,6 +8,7 @@
         <div class="article-meta">
             <p>Автор: <a href="{{ url_for('user_profile', username=article.author) }}">{{ article.author }}</a></p>
             <p>Тег: <span class="article-tag">{{ article.tag }}</span></p>
+            <p>Просмотров: <span class="article-views">{{ article.views }}</span></p>
             <p>Опубликовано: 
                 {% if article.created_at %}
                     {{ article.created_at.strftime('%d.%m.%Y в %H:%M') }}

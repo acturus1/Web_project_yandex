@@ -82,6 +82,7 @@ class Article(db.Model):
     path = db.Column(db.String(200), nullable=False)  # Путm к файлу статьи
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.relationship('Comment', backref='article', lazy=True, order_by="Comment.created_at.desc()")
+    views = db.Column(db.Integer, default=0)
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -103,11 +104,23 @@ def allowed_file(filename):
 # Главная страница
 @app.route('/')
 def index():
+    sort_by = request.args.get('sort', 'newest')
+    
+    query = Article.query if current_user.is_authenticated else Article.query.filter_by(registered=False)
+    
+    if sort_by == 'views':
+        articles = query.order_by(Article.views.desc()).all()
+    elif sort_by == 'oldest':
+        articles = query.order_by(Article.created_at.asc()).all()
+    else: 
+        articles = query.order_by(Article.created_at.desc()).all()
     if current_user.is_authenticated:
         articles = Article.query.all()
     else:
         articles = Article.query.filter_by(registered=False).all()
-    return render_template('index.html', articles=articles)
+    return render_template('index.html', 
+                         articles=articles,
+                         current_sort=sort_by)
 
 # Страница входа
 @app.route('/login', methods=['GET', 'POST'])
@@ -304,6 +317,8 @@ def delete_article(id):
 @app.route('/article/<int:id>')
 def view_article(id):
     article = Article.query.get_or_404(id)
+    article.views += 1
+    db.session.commit()
     if article.registered and not current_user.is_authenticated:
         flash('Для просмотра этой статьи войдите в систему')
         return redirect(url_for('login'))
