@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, make_response
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -91,7 +91,16 @@ class Comment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
 
+class ArticleView(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'article_id', name='uix_user_article'),
+    )
+
 # Загрузчик пользователя для Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
@@ -317,16 +326,54 @@ def delete_article(id):
 @app.route('/article/<int:id>')
 def view_article(id):
     article = Article.query.get_or_404(id)
-    article.views += 1
-    db.session.commit()
+    
+    # Проверка доступа к закрытым статьям
     if article.registered and not current_user.is_authenticated:
         flash('Для просмотра этой статьи войдите в систему')
         return redirect(url_for('login'))
+    
+    # Проверка уникальности просмотра
+    if current_user.is_authenticated:
+        # Для авторизованных пользователей - проверка в базе данных
+        view_exists = db.session.query(
+            db.exists().where(
+                (ArticleView.user_id == current_user.id) & 
+                (ArticleView.article_id == article.id)
+            )
+        ).scalar()
+    else:
+        # Для анонимных пользователей - проверка куки
+        cookie_name = f'article_view_{article.id}'
+        view_exists = request.cookies.get(cookie_name)
+    
+    # Увеличиваем счетчик только для уникальных просмотров
+    if not view_exists:
+        article.views += 1
+        db.session.commit()
+        
+        # Запоминаем просмотр
+        if current_user.is_authenticated:
+            new_view = ArticleView(user_id=current_user.id, article_id=article.id)
+            db.session.add(new_view)
+            db.session.commit()
+    
+    # Чтение содержимого статьи
     path_to_html = article.path.rstrip(".md") + ".html"
     with open(path_to_html, 'r', encoding='utf-8') as f:
         content = f.read()
-    content = fix_encoding(content)  # Исправляем кодировку
-    return render_template('view_article.html', article=article, content=content)
+    content = fix_encoding(content)
+    
+    # Создаем ответ и устанавливаем куку для анонимных пользователей
+    response = make_response(render_template(
+        'view_article.html', 
+        article=article, 
+        content=content
+    ))
+    
+    if not current_user.is_authenticated and not view_exists:
+        response.set_cookie(f'article_view_{article.id}', '1', max_age=86400*7)  # Кука на 7 дней
+    
+    return response
 
 # Фильтрация статей по тегу
 @app.route('/tag/<string:tag>')
