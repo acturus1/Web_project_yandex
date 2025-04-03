@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, make_response, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -132,10 +132,6 @@ def index():
         articles = query.order_by(Article.likes_count.desc()).all()
     else: 
         articles = query.order_by(Article.created_at.desc()).all()
-    if current_user.is_authenticated:
-        articles = Article.query.all()
-    else:
-        articles = Article.query.filter_by(registered=False).all()
     return render_template('index.html', 
                          articles=articles,
                          current_sort=sort_by)
