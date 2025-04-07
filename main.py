@@ -119,16 +119,13 @@ class ArticleLike(db.Model):
 # API Blueprint
 api_bp = Blueprint('api', __name__)
 
-### Статьи ###
 @api_bp.route('/articles', methods=['GET'])
 def get_all_articles():
     """Получить список всех статей с простой сортировкой"""
     sort_by = request.args.get('sort_by', 'date')
     
-    # Базовый запрос
     query = Article.query
     
-    # Применяем сортировку
     if sort_by == 'views':
         articles = query.order_by(Article.views.desc()).all()
     elif sort_by == 'likes':
@@ -181,7 +178,6 @@ def get_all_users():
     query = User.query
     
     if sort_by == 'articles':
-        # Сортируем по количеству статей (используем подзапрос)
         subquery = db.session.query(
             Article.author,
             db.func.count(Article.id).label('articles_count')
@@ -220,7 +216,6 @@ def get_all_tags():
             'articles_count': count
         })
     
-    # Простая сортировка по количеству статей
     tags_data.sort(key=lambda x: x['articles_count'], reverse=True)
     
     return jsonify(tags_data)
