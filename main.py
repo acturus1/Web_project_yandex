@@ -1,8 +1,9 @@
 import os
 import re
+import shutil
 from datetime import datetime
 from functools import wraps
-from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, url_for
+from flask import Flask, Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from transliterate import translit
@@ -69,9 +70,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 # Модели базы данных
 class User(UserMixin, db.Model):
-    """Модель пользователя."""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
@@ -80,7 +81,6 @@ class User(UserMixin, db.Model):
     comments = db.relationship('Comment', backref='author', lazy=True)
 
 class Article(db.Model):
-    """Модель статьи."""
     id = db.Column(db.Integer, primary_key=True)
     author = db.Column(db.String(80), nullable=False)
     name = db.Column(db.String(120), nullable=False)
@@ -94,7 +94,6 @@ class Article(db.Model):
     likes_count = db.Column(db.Integer, default=0)
 
 class Comment(db.Model):
-    """Модель комментария."""
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -102,7 +101,6 @@ class Comment(db.Model):
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
 
 class ArticleView(db.Model):
-    """Модель просмотра статьи (для учета уникальных просмотров)."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
@@ -113,11 +111,123 @@ class ArticleView(db.Model):
     )
 
 class ArticleLike(db.Model):
-    """Модель лайка статьи."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# API Blueprint
+api_bp = Blueprint('api', __name__)
+
+### Статьи ###
+@api_bp.route('/articles', methods=['GET'])
+def get_all_articles():
+    """Получить список всех статей с простой сортировкой"""
+    sort_by = request.args.get('sort_by', 'date')
+    
+    # Базовый запрос
+    query = Article.query
+    
+    # Применяем сортировку
+    if sort_by == 'views':
+        articles = query.order_by(Article.views.desc()).all()
+    elif sort_by == 'likes':
+        articles = query.order_by(Article.likes_count.desc()).all()
+    elif sort_by == 'title':
+        articles = query.order_by(Article.name.asc()).all()
+    else:  # date (по умолчанию)
+        articles = query.order_by(Article.created_at.desc()).all()
+    
+    articles_data = [{
+        'id': article.id,
+        'title': article.name,
+        'author': article.author,
+        'tag': article.tag,
+        'views': article.views,
+        'likes': article.likes_count,
+        'created_at': article.created_at.isoformat(),
+        'registered_only': article.registered
+    } for article in articles]
+    
+    return jsonify({
+        'articles': articles_data,
+        'sort_by': sort_by,
+        'total': len(articles)
+    })
+
+@api_bp.route('/articles/<int:article_id>', methods=['GET'])
+def get_article_details(article_id):
+    """Получить полную информацию о статье"""
+    article = Article.query.get_or_404(article_id)
+    
+    return jsonify({
+        'id': article.id,
+        'title': article.name,
+        'author': article.author,
+        'tag': article.tag,
+        'views': article.views,
+        'likes': article.likes_count,
+        'created_at': article.created_at.isoformat(),
+        'registered_only': article.registered,
+        'comments_count': len(article.comments)}
+    )
+
+### Пользователи ###
+@api_bp.route('/users', methods=['GET'])
+def get_all_users():
+    """Получить список всех пользователей с сортировкой"""
+    sort_by = request.args.get('sort_by', 'username')
+    
+    query = User.query
+    
+    if sort_by == 'articles':
+        # Сортируем по количеству статей (используем подзапрос)
+        subquery = db.session.query(
+            Article.author,
+            db.func.count(Article.id).label('articles_count')
+        ).group_by(Article.author).subquery()
+        
+        users = query.outerjoin(
+            subquery, 
+            User.username == subquery.c.author
+        ).order_by(db.desc('articles_count')).all()
+    else:  # username (по умолчанию)
+        users = query.order_by(User.username.asc()).all()
+    
+    users_data = [{
+        'id': user.id,
+        'username': user.username,
+        'is_admin': user.is_admin,
+        'articles_count': Article.query.filter_by(author=user.username).count()
+    } for user in users]
+    
+    return jsonify({
+        'users': users_data,
+        'sort_by': sort_by,
+        'total': len(users)
+    })
+
+### Теги ###
+@api_bp.route('/tags', methods=['GET'])
+def get_all_tags():
+    """Получить список тегов с сортировкой по популярности"""
+    tags_data = []
+    
+    for tag in ALLOWED_TAGS:
+        count = Article.query.filter_by(tag=tag).count()
+        tags_data.append({
+            'name': tag,
+            'articles_count': count
+        })
+    
+    # Простая сортировка по количеству статей
+    tags_data.sort(key=lambda x: x['articles_count'], reverse=True)
+    
+    return jsonify(tags_data)
+
+# Регистрация API
+app.register_blueprint(api_bp, url_prefix='/api')
+
 
 # Загрузчик пользователя для Flask-Login
 @login_manager.user_loader
