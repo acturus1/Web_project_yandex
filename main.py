@@ -132,7 +132,7 @@ def get_all_articles():
         articles = query.order_by(Article.likes_count.desc()).all()
     elif sort_by == 'title':
         articles = query.order_by(Article.name.asc()).all()
-    else:  # date (по умолчанию)
+    else: 
         articles = query.order_by(Article.created_at.desc()).all()
     
     articles_data = [{
@@ -169,7 +169,7 @@ def get_article_details(article_id):
         'comments_count': len(article.comments)}
     )
 
-### Пользователи ###
+# Пользователи 
 @api_bp.route('/users', methods=['GET'])
 def get_all_users():
     """Получить список всех пользователей с сортировкой"""
@@ -187,7 +187,7 @@ def get_all_users():
             subquery, 
             User.username == subquery.c.author
         ).order_by(db.desc('articles_count')).all()
-    else:  # username (по умолчанию)
+    else: 
         users = query.order_by(User.username.asc()).all()
     
     users_data = [{
@@ -203,7 +203,7 @@ def get_all_users():
         'total': len(users)
     })
 
-### Теги ###
+# Теги
 @api_bp.route('/tags', methods=['GET'])
 def get_all_tags():
     """Получить список тегов с сортировкой по популярности"""
@@ -220,9 +220,7 @@ def get_all_tags():
     
     return jsonify(tags_data)
 
-# Регистрация API
 app.register_blueprint(api_bp, url_prefix='/api')
-
 
 # Загрузчик пользователя для Flask-Login
 @login_manager.user_loader
