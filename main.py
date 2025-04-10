@@ -121,7 +121,7 @@ api_bp = Blueprint('api', __name__)
 
 @api_bp.route('/articles', methods=['GET'])
 def get_all_articles():
-    """Получить список всех статей с простой сортировкой"""
+    """Получить список всех статей"""
     sort_by = request.args.get('sort_by', 'date')
     
     query = Article.query
