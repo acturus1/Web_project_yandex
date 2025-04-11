@@ -7,3 +7,4 @@ static/avatars/*
 .vscode/
 tooken.py
 .venv/
+.venv/*
