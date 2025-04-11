@@ -4,6 +4,11 @@ python -m venv .venv
 source .venv/bin/activate
 .venv/bin/python .venv/bin/pip install -r requirements.txt
 
+export FLASK_APP=main.py
+flask shell
+from app import db
+db.create_all()
+exit()
 
 if command -v apt &> /dev/null; then
     sudo apt install -y pandoc
