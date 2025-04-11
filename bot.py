@@ -1,6 +1,12 @@
 import telebot
 import requests
-from tooken import token 
+import os
+
+token = os.getenv('TOKEN')
+
+if token == 'None':
+    print(token)
+    quit()
 
 API_URL = "http://localhost:5000/api"
 
@@ -70,4 +76,4 @@ def handle_tags(message):
 
 if __name__ == "__main__":
     bot.polling(none_stop=True)
-
+    print('бот запущен')
