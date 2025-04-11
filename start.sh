@@ -5,17 +5,18 @@ source .venv/bin/activate
 .venv/bin/python .venv/bin/pip install -r requirements.txt
 
 export FLASK_APP=main.py
-flask shell
+
+flask shell -c "
 from app import db
 db.create_all()
-exit()
+"
 
 if command -v apt &> /dev/null; then
     sudo apt install -y pandoc
 elif command -v dnf &> /dev/null; then
     sudo dnf install -y pandoc
 elif command -v pacman &> /dev/null; then
-    sudo pacman -Sy --noconfirm pandoc
+    sudo pacman -S --noconfirm pandoc
 fi
 
 .venv/bin/python main.py &
