@@ -5,6 +5,7 @@ articles/
 static/avatars/*
 !static/avatars/default_avatar.jpg
 .vscode/
+.vscode/*
 tooken.py
 .venv/
 .venv/*
