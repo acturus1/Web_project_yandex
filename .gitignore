@@ -6,3 +6,4 @@ static/avatars/*
 !static/avatars/default_avatar.jpg
 .vscode/
 tooken.py
+.venv/
