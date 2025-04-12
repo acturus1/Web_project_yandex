@@ -9,3 +9,5 @@ static/avatars/*
 tooken.py
 .venv/
 .venv/*
+log/*
+log/
