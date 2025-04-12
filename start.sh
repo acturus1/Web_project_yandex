@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exec > /dev/null 2>&1
+# exec > /dev/null 2>&1
 
 TOKEN="$1"
 
@@ -25,7 +25,8 @@ elif command -v pacman &> /dev/null; then
     sudo pacman -S --noconfirm pandoc
 fi
 
-.venv/bin/python main.py > log/flask.log 2>&1 &
+# .venv/bin/python main.py > log/flask.log 2>&1 &
+.venv/bin/python main.py &
 
 export TOKEN
 .venv/bin/python bot.py > log/bot.log 2>&1 &

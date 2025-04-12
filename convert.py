@@ -1,27 +1,18 @@
-import os
-import sys
-from subprocess import run, CalledProcessError
+import markdown
 
-def convert_md_to_html(path_to_md):
-    if not os.path.exists(path_to_md):
-        print(f"Файл {path_to_md} не существует")
-        return
-    
-    path_to_html = path_to_md[:-3] + ".html"
-    
+def convert_md_to_html(path_to_md: str):
+    """Конвертирует Markdown файл в HTML используя библиотеку markdown"""
     try:
-        run(["which", "pandoc"], check=True)
-    except CalledProcessError:
-        print("pandoc не установлен")
-        print("sudo pacman -S pandoc")
-        return
-    
-    try:
-        run(["pandoc", "-s", path_to_md, "-o", path_to_html], check=True)
-    except CalledProcessError as e:
-        print(f"{e}")
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit(1)
-    convert_md_to_html(sys.argv[1])
+        with open(path_to_md, 'r', encoding='utf-8') as f:
+            md_content = f.read()
+        
+        html_content = markdown.markdown(md_content)
+        
+        path_to_html = path_to_md[:-3] + ".html"
+        with open(path_to_html, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        return True
+    except Exception as e:
+        print(f"Ошибка конвертации: {str(e)}")
+        return False
