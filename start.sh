@@ -1,5 +1,11 @@
 #!/bin/bash
 
+exec > /dev/null 2>&1
+
+TOKEN="$1"
+
+mkdir log
+
 python -m venv .venv
 source .venv/bin/activate
 .venv/bin/python .venv/bin/pip install -r requirements.txt
@@ -19,12 +25,10 @@ elif command -v pacman &> /dev/null; then
     sudo pacman -S --noconfirm pandoc
 fi
 
-.venv/bin/python main.py &
-sleep 3
+.venv/bin/python main.py > log/flask.log 2>&1 &
 
-read -p "Введите токен бота если не нужен введите None:" TOKEN
 export TOKEN
-.venv/bin/python bot.py &
+.venv/bin/python bot.py > log/bot.log 2>&1 &
 
 stop_scripts() {
     pkill -f ".venv/bin/python main.py"
