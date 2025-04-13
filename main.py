@@ -1,14 +1,13 @@
 import os
 import re
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from flask import Flask, Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from transliterate import translit
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 import click
 from convert import convert_md_to_html
 
@@ -87,7 +86,7 @@ class Article(db.Model):
     tag = db.Column(db.String(50), nullable=False)
     registered = db.Column(db.Boolean, nullable=False)
     path = db.Column(db.String(200), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     comments = db.relationship('Comment', backref='article', lazy=True, 
                              order_by="Comment.created_at.desc()")
     views = db.Column(db.Integer, default=0)
@@ -96,7 +95,7 @@ class Article(db.Model):
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
 
@@ -104,7 +103,7 @@ class ArticleView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viewed_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     
     __table_args__ = (
         db.UniqueConstraint('user_id', 'article_id', name='uix_user_article'),
@@ -114,7 +113,7 @@ class ArticleLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
 
 # API Blueprint
 api_bp = Blueprint('api', __name__)
@@ -353,7 +352,7 @@ def user_profile(username):
     """Страница профиля пользователя."""
     user = User.query.filter_by(username=username).first_or_404()
     
-    # Получение статей пользователя с учетом доступа
+    # Получение статей пользователя
     articles_query = Article.query.filter_by(author=username)
     if not current_user.is_authenticated:
         articles_query = articles_query.filter_by(registered=False)
@@ -595,7 +594,6 @@ def admin_edit_article(id):
 @login_required
 def add_comment(article_id):
     """Добавление комментария к статье."""
-    article = Article.query.get_or_404(article_id)
     text = request.form.get('text')
     
     if not text:
