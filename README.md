@@ -96,6 +96,6 @@ REST API для работы с данными:
 
 2. Скриншоты интерфейса 
 
-![](./images/img1.png)
 ![](./images/img2.png)
 ![](./images/img3.png)
+![](./images/img1.png)
