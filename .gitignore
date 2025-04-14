@@ -11,3 +11,4 @@ tooken.py
 .venv/*
 log/*
 log/
+tmp.txt
