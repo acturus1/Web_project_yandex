@@ -93,7 +93,8 @@ REST API для работы с данными:
 **Приложения:**  
 1. Схема БД
 
-![](images/database_schema.png)
+![](images/database_schema.png) 
+
 2. Скриншоты интерфейса 
 
 ![](./images/img1.png)
