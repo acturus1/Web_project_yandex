@@ -85,15 +85,17 @@ REST API для работы с данными:
 | `/api/users`          | GET   | Список пользователей              |  
 | `/api/tags`           | GET   | Список тегов                      |  
 
-## 7. Заключение  
+## 6. Заключение  
 **Ссылки:**  
 - Репозиторий: [https://github.com/acturus1/Web_project_yandex](#)  
 - Демо: [https://vikyt.pythonanywhere.com/](#)  
 
 **Приложения:**  
-1. Схема БД 
+1. Схема БД
+
 ![](images/database_schema.png)
-2. Скриншоты интерфейса  
+2. Скриншоты интерфейса 
+
 ![](./images/img1.png)
 ![](./images/img1.png)
 ![](./images/img3.png)
